@@ -26,7 +26,8 @@ def extract_MailAddress_Domain(file):
 
 #リンクのドメイン部分を抜き出す
 def extract_Link_Domain(file):
-    link_domain =""
+    #重複対策でsetに
+    link_domain = set([])
     #ファイルの読み込み
     with open(file,'rb') as eml:
         msg = BytesParser(policy=policy.default).parse(eml)
@@ -37,15 +38,19 @@ def extract_Link_Domain(file):
                 content = part.get_payload(decode=True).decode(part.get_content_charset() ,'ignore')
                 #正規表現でurlを取り出す hrefのとこだけ
                 ex_urls = re.findall(url_pattern, content)
-                #ドメイン部分を抜き出す [0]が最初のなのでhrefのはず
-                link_domain = urlparse(ex_urls[0]).netloc
+                #ドメイン部分を抜き出す [0]が最初のなので偶数番目がhrefのはず
+                for link in ex_urls:
+                    #要素が偶数のときhrefの中身
+                    if ex_urls.index(link) % 2 == 0: 
+                        link_domain.add(urlparse(link).netloc)
     return link_domain
 
 def main(filePath):
     mailAddressDomain = extract_MailAddress_Domain(filePath)
-    linkDomein = extract_Link_Domain(filePath)
-    print(mailAddressDomain)
-    print(linkDomein)
+    linkDomain = extract_Link_Domain(filePath)
+    print("mail address domain :" + mailAddressDomain)
+    for domain in linkDomain:
+        print("link domain :" + domain)
     
 
 if __name__ == "__main__":
