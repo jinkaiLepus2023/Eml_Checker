@@ -4,6 +4,7 @@ from email import policy
 from email.parser import BytesParser
 from urllib.parse import urlparse
 import re
+import scanLinkDomain
 #emlから送信元メールアドレス部分のドメインと
 #本文に添付されたリンクのドメイン部分を抜き出す(対フィッシング)
 #使い勝手を考えてD&Dで起動...は面倒そうなので引数に指定して実行
@@ -41,17 +42,19 @@ def extract_Link_Domain(file):
                 #ドメイン部分を抜き出す [0]が最初のなので偶数番目がhrefのはず
                 for link in ex_urls:
                     #要素が偶数のときhrefの中身
-                    if ex_urls.index(link) % 2 == 0: 
+                    if ex_urls.index(link) % 2 == 0:
                         link_domain.add(urlparse(link).netloc)
     return link_domain
 
 def main(filePath):
     mailAddressDomain = extract_MailAddress_Domain(filePath)
     linkDomain = extract_Link_Domain(filePath)
-    print("mail address domain :" + mailAddressDomain)
+    print("mail address domain :" + mailAddressDomain + "\n")
     for domain in linkDomain:
         print("link domain :" + domain)
-    
+        verdictResult = scanLinkDomain.scanningLinkDomein(domain)
+        print("    " + verdictResult + "\n")
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
