@@ -4,6 +4,7 @@ from email import policy
 from email.parser import BytesParser
 from urllib.parse import urlparse
 import re
+from spamcheck import *
 #emlから送信元メールアドレス部分のドメインと
 #本文に添付されたリンクのドメイン部分を抜き出す(対フィッシング)
 #使い勝手を考えてD&Dで起動...は面倒そうなので引数に指定して実行
@@ -48,9 +49,15 @@ def extract_Link_Domain(file):
 def main(filePath):
     mailAddressDomain = extract_MailAddress_Domain(filePath)
     linkDomain = extract_Link_Domain(filePath)
-    print("mail address domain :" + mailAddressDomain)
+    #print("mail address domain :" + mailAddressDomain)
+    check_zenbl(mailAddressDomain)
+    #abuseIPDBを使うなら↓
+    #abuse_check(mailAddressDomain)
+
     for domain in linkDomain:
         print("link domain :" + domain)
+
+
     
 
 if __name__ == "__main__":
