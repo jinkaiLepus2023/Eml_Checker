@@ -52,8 +52,7 @@ def main(filePath):
     print("mail address domain :" + mailAddressDomain + "\n")
     for domain in linkDomain:
         print("link domain :" + domain)
-        verdictResult = scanLinkDomain.scanningLinkDomein(domain)
-        print("    " + verdictResult + "\n")
+    scanLinkDomain.scanningLinkDomeins(linkDomain)
 
 
 if __name__ == "__main__":
