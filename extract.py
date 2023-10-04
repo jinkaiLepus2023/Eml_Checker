@@ -72,8 +72,7 @@ def main(filePath):
     linkDomain = extract_Link_Domain(filePath)
     #print("mail address domain :" + mailAddressDomain)
     check_zenbl(mailAddressDomain)
-    #abuseIPDBを使うなら↓
-    #abuse_check(mailAddressDomain)
+    server_check(filePath)
 
     for domain in linkDomain:
         print("link domain :" + domain)
