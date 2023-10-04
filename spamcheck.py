@@ -10,51 +10,25 @@ def check_zenbl(domain):
         #メールドメインをIPに出来なかった(見つからなかった)
         print(f"{domain} IP not found")
         return 0
-    
-    for a in address:
-        ip = a
-    segments = ip.split(".")
+
+    segments = address.split(".")
     reversed_ip = ".".join(reversed(segments))
+    req = reversed_ip +"."+ checker
     try:
-        results = socket.getaddrinfo(reversed_ip +"."+ checker,80)
-        for result in results:
-            print(result)
+        results = socket.getaddrinfo(req,53)
+        print(
+"""
+Return Code	Zone	Description
+127.0.0.2	SBL	Spamhaus SBL Data
+127.0.0.3	SBL	Spamhaus SBL CSS Data
+127.0.0.4	XBL	CBL Data
+127.0.0.9	SBL	Spamhaus DROP/EDROP Data (in addition to 127.0.0.2, since 01-Jun-2016)
+127.0.0.10	PBL	ISP Maintained
+127.0.0.11	PBL	Spamhaus Maintained
+""")
+        print(results)
+        print(f"{domain} is SPAM")
     except:
-        #spamhausに登録されていなかった
+        #応答がない=spamhausに登録されていなかった
         print(f"{domain} is not SPAM")
 
-#--------以下 abuseIPDBを使用---------------------
-import requests
-import json
-#import socket
-
-json_open = open('api.json', 'r')
-json_load = json.load(json_open)
-api = json_load["api"]
-
-def abuse_check(domain):
-    address = ""
-    try:
-        address = socket.gethostbyname(domain)
-    except:
-        #メールドメインをIPに出来なかった(見つからなかった)
-        print(f"{domain} IP not found")
-        return 0
-    # Defining the api-endpoint
-    url = 'https://api.abuseipdb.com/api/v2/check'
-
-    querystring = {
-        'ipAddress': f'{address}',
-    }
-
-    headers = {
-        'Accept': 'application/json',
-        'Key': api
-    }
-
-    response = requests.request(method='GET', url=url, headers=headers, params=querystring)
-
-    # Formatted output
-    decodedResponse = json.loads(response.text)
-    print(json.dumps(decodedResponse, sort_keys=True, indent=4))
-    
