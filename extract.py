@@ -4,7 +4,8 @@ from email import policy
 from email.parser import BytesParser
 from urllib.parse import urlparse
 import re
-import scanLinkDomain
+from spamcheck import *
+from scanLinkDomain import *
 #emlから送信元メールアドレス部分のドメインと
 #本文に添付されたリンクのドメイン部分を抜き出す(対フィッシング)
 #使い勝手を考えてD&Dで起動...は面倒そうなので引数に指定して実行
@@ -46,18 +47,52 @@ def extract_Link_Domain(file):
                         link_domain.add(urlparse(link).netloc)
     return link_domain
 
+def server_check(filePath):
+    with open(filePath, "r", encoding="utf-8") as eml_file:
+        msg = email.message_from_file(eml_file)
+        #ヘッダのDKIMとSPFについて取得
+        dkim_header = msg.get('DKIM-Signature')
+        spf_header = msg.get('Received-SPF')
+    # Receivedヘッダを取得して、メールホップ情報を表示
+    if "Received" in msg:
+        received_headers = msg.get_all("Received")
+        for i, received_header in enumerate(received_headers, start=1):
+            print(f"Received Hop {i}:\n{received_header}\n")
+    if dkim_header:
+        print("dkim : "+dkim_header)
+    if spf_header:
+        print("spf : "+spf_header)
+    else:
+        print("Received headers not found in the email.")
+        eml_file.close()
+
+
 def main(filePath):
+    server_check(filePath)
     mailAddressDomain = extract_MailAddress_Domain(filePath)
     linkDomain = extract_Link_Domain(filePath)
-    print("mail address domain :" + mailAddressDomain + "\n")
+    #print("mail address domain :" + mailAddressDomain)
+    check_zenbl(mailAddressDomain)
+    server_check(filePath)
+
+    print("\n", end="")
     for domain in linkDomain:
         print("link domain :" + domain)
-    scanLinkDomain.scanningLinkDomeins(linkDomain)
+    scanningLinkDomeins(linkDomain)
+
+
+def main_light(filePath):
+    mailAddressDomain = extract_MailAddress_Domain(filePath)
+    check_zenbl(mailAddressDomain)
+    server_check(filePath)
 
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("usage : python extract.py file(.eml)")
         sys.exit()
+    #第二引数に-lがあった時，spamcheckだけ走る(誰でも手軽に)
+    elif len(sys.argv) >=3 and sys.argv[2] == "-l":
+        main_light(sys.argv[1])
     else:
         main(sys.argv[1])

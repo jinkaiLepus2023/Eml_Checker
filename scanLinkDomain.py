@@ -8,13 +8,15 @@ from html.parser import HTMLParser
 class ResultParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
-        self._in_h4 = False         #h4ブロック内にいるかどうか
-        self._in_verdict = False    #解析結果の存在するブロック内にいるかどうか
-        self._in_links = False      #サイト内リンク一覧の存在するブロック内にいるかどうか
-        self._in_linkTxt = False    #サイト内リンクのドメインが表示されるブロック内にいるかどうか
-        self._screenshotURL = ""    #スクリーンショットURLの格納場所
-        self._verdictResult = ""    #解析結果の格納場所
-        self._inSiteLinkDomains = set([])   #サイト内リンクの格納場所
+        self._in_primaryDomain = True    #解析されたドメインの表示ブロック内にいるかどうか
+        self._in_h4 = False              #h4ブロック内にいるかどうか
+        self._in_verdict = False         #解析結果の存在するブロック内にいるかどうか
+        self._in_links = False           #サイト内リンク一覧の存在するブロック内にいるかどうか
+        self._in_linkTxt = False         #サイト内リンクのドメインが表示されるブロック内にいるかどうか
+        self._screenshotURL = ""         #スクリーンショットURLの格納場所
+        self._verdictResult = ""         #解析結果の格納場所
+        self._inSiteLinkDomains = set([])#サイト内リンクの格納場所
+        self._effectiveDomain = ""       #実際に解析されたドメインの格納場所
 
     def handle_starttag(self, tag, attrs):
         if tag == "img" and len(attrs) > 0:    #スクリーンショットの存在するURLを取得する
@@ -27,10 +29,11 @@ class ResultParser(HTMLParser):
                 self._in_links = False
         if tag == "h4":
             self._in_h4 = True
-        if self._in_links == True:
-            if tag == "span" and len(attrs) > 0:
-                if attrs[0][1] == "text-success bold":
-                    self._in_linkTxt = True
+        if tag == "span" and len(attrs) > 0:
+            if attrs[0][1] == "primaryHostname":
+                self._in_primaryDomain = True
+            if attrs[0][1] == "text-success bold":
+                self._in_linkTxt = True
 
     def handle_endtag(self, tag):
         if self._in_h4 == True and tag == "h4":
@@ -38,13 +41,16 @@ class ResultParser(HTMLParser):
             self._in_verdict = False
 
     def handle_data(self, data):
-        if self._in_verdict == True:
+        if self._in_primaryDomain == True:  #実際に解析されたドメインの取得
+            self._effectiveDomain = data
+            self._in_primaryDomain = False
+        if self._in_verdict == True:        #解析結果の取得
             self._verdictResult += data
-        if self._in_h4 == True:
+        if self._in_h4 == True:             #解析結果の取得
             if data == "urlscan.":
                 self._in_verdict = True
                 self._verdictResult += data
-        if self._in_linkTxt == True:
+        if self._in_linkTxt == True:        #サイト内リンクの取得
             self._inSiteLinkDomains.add(data)
             self._in_linkTxt = False
 
@@ -52,7 +58,7 @@ class ResultParser(HTMLParser):
 #URLをurlscan.ioに投げて解析を依頼する
 def scanRequest(domain):
     #urlscan.io API要求を作成してpost，リンクのドメイン部分を解析してもらう
-    headers = {'API-Key':'ここにAPIキー','Content-Type':'application/json'}
+    headers = {'API-Key':'ここにAPIキーを記述','Content-Type':'application/json'}
     data = {"url": domain, "visibility": "public"}
     response = requests.post('https://urlscan.io/api/v1/scan',headers=headers, data=json.dumps(data))
     return response
@@ -71,7 +77,10 @@ def accessResult(resultURL, domain):
     with open("resultpng/"+outfileName+".png", "wb") as f:
         f.write(screenshot.content)
     #URLの判定結果とサイト内リンク一覧を返す
-    print(domain + ": ")
+    if(domain == resultParser._effectiveDomain):
+        print(domain + ": ")
+    else:
+        print(resultParser._effectiveDomain + " (submitted: " + domain + "): ")
     print("     " + resultParser._verdictResult.replace("\n", ""))
     print("     This site has " + str(len(resultParser._inSiteLinkDomains)) + " link domain:    ", end='')
     for i, inSiteLink in enumerate(resultParser._inSiteLinkDomains):
@@ -84,7 +93,7 @@ def accessResult(resultURL, domain):
 
 #URLを解析する
 def scanningLinkDomeins(linkDomain):
-    print("--------------urlscan.io--------------")
+    print("\n--------------urlscan.io--------------")
     domainList = list(linkDomain) #結果取得時に順序を考慮するためリストにする
     resultURLs = []
     for domain in domainList:
@@ -96,9 +105,9 @@ def scanningLinkDomeins(linkDomain):
             resultURLs.append(res.status_code)
     time.sleep(15) #postして即座に解析情報をリクエストすると結果が見つからないためしばらく待つ
     for i in range(len(domainList)):
-        if isinstance(resultURLs[i], int) == True:  #リスト内要素が整数(ステータスコード)の場合ドメイン名とステータスコードだけ出力する
+        if isinstance(resultURLs[i], int) == True:
             print(domainList[i] + ": ")
-            print("     " + str(resultURLs[i]))
+            print("     " + str(resultURLs[i]) + "\n")
         else:
-            accessResult(resultURLs[i], domainList[i])  #リスト内要素が文字列(結果へのリンクの場合解析結果取得に移る)
+            accessResult(resultURLs[i], domainList[i])
     return
