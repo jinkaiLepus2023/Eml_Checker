@@ -89,7 +89,7 @@ if __name__ == "__main__":
         print("usage : python extract.py file(.eml)")
         sys.exit()
     #第二引数に-lがあった時，spamcheckだけ走る(誰でも手軽に)
-    elif sys.argv[2] == "-l":
+    elif len(sys.argv) >=3 and sys.argv[2] == "-l":
         main_light(sys.argv[1])
     else:
         main(sys.argv[1])
