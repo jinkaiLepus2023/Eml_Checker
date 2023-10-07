@@ -92,7 +92,7 @@ def main_light(filePath):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("usage : python extract.py file(.eml)")
+        print("usage : python LeParser.py file(.eml)")
         sys.exit()
     #第二引数に-lがあった時，spamcheckだけ走る(誰でも手軽に)
     elif len(sys.argv) >=3 and sys.argv[2] == "-l":
